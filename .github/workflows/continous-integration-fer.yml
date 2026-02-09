@@ -1,0 +1,46 @@
+name: CI - Fer
+
+on:
+  push:
+    branches:
+      - master
+
+jobs:
+  ci:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Pruebas de SAST
+        run: echo "Ejecución de pruebas de SAST"
+
+      - name: Crear credentials.ini
+        env:
+          USERNAME: ${{ secrets.USERNAME }}
+          PASSWORD: ${{ secrets.PASSWORD }}
+        run: |
+          python - <<'PY'
+          import os
+
+          with open("credentials.ini.tpl", "r", encoding="utf-8") as f:
+              tpl = f.read()
+
+          tpl = tpl.replace("${USERNAME}", os.environ["USERNAME"])
+          tpl = tpl.replace("${PASSWORD}", os.environ["PASSWORD"])
+
+          with open("credentials.ini", "w", encoding="utf-8") as f:
+              f.write(tpl)
+
+          print("credentials.ini generado correctamente")
+          PY
+
+      - name: Mostrar credentials.ini (para captura)
+        run: |
+          echo "===== credentials.ini ====="
+          cat credentials.ini
+          echo "==========================="
+
+      - name: Build docker image
+        run: docker build -t devops_ws . --tag devops_ws_:$(date +%s)
