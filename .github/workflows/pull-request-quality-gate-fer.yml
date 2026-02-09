@@ -1,0 +1,45 @@
+name: PR Quality Gate - Fer
+
+on:
+  pull_request:
+    branches:
+      - master
+
+jobs:
+  quality_gate:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Analizar el código
+        run: echo "Realizando análisis de SAST"
+
+      - name: Comprobar requisitos (archivo allow_pull_request.txt)
+        id: check
+        run: |
+          if [ -f allow_pull_request.txt ]; then
+            echo "allow_pull=true" >> "$GITHUB_OUTPUT"
+            echo "allow_pull=true" > quality_gate_result.txt
+          else
+            echo "allow_pull=false" >> "$GITHUB_OUTPUT"
+            echo "allow_pull=false" > quality_gate_result.txt
+          fi
+
+      - name: Permitir Pull Request
+        if: steps.check.outputs.allow_pull == 'true'
+        run: echo "Permitiendo Pull Request"
+
+      - name: Impedir Pull Request
+        if: steps.check.outputs.allow_pull != 'true'
+        run: |
+          echo "Build fallida. Impidiendo Pull Request"
+          exit 1
+
+      - name: Subir artefacto (resultado)
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: quality-gate-result
+          path: quality_gate_result.txt
